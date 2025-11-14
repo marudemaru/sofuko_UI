@@ -22,14 +22,17 @@ interface CreatePinModalProps {
     genre: PinGenre;
     images: string[];
   }) => void;
+  // optional initial coordinates to prefill the form when creating at a specific location
+  initialLatitude?: number;
+  initialLongitude?: number;
 }
 
-export function CreatePinModal({ user, onClose, onCreate }: CreatePinModalProps) {
+export function CreatePinModal({ user, onClose, onCreate, initialLatitude, initialLongitude }: CreatePinModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState<PinGenre>('other');
-  const [latitude, setLatitude] = useState('35.6762');
-  const [longitude, setLongitude] = useState('139.6503');
+  const [latitude, setLatitude] = useState(String(initialLatitude ?? 35.6762));
+  const [longitude, setLongitude] = useState(String(initialLongitude ?? 139.6503));
   const [images, setImages] = useState<string[]>([]);
 
   // サンプル画像

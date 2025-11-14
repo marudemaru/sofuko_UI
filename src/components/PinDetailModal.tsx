@@ -16,9 +16,13 @@ interface PinDetailModalProps {
   onReaction: (pinId: string) => void;
   onDelete: (pinId: string) => void;
   onBlockUser?: (userId: string) => void;
+  // pins at the same/similar location to allow scrolling through nearby posts
+  pinsAtLocation?: Pin[];
+  // open create modal prefilled with given coordinates
+  onOpenCreateAtLocation?: (lat: number, lng: number) => void;
 }
 
-export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReaction, onDelete, onBlockUser }: PinDetailModalProps) {
+export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReaction, onDelete, onBlockUser, pinsAtLocation, onOpenCreateAtLocation }: PinDetailModalProps) {
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState('');
 
@@ -117,10 +121,22 @@ export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReactio
             </p>
           </div>
 
-          {/* リアクション数 */}
-          <div className="flex items-center space-x-2 text-gray-700">
-            <Heart className={`w-5 h-5 ${isReacted ? 'fill-red-500 text-red-500' : ''}`} />
-            <span>{pin.reactions} リアクション</span>
+          {/* リアクション数 と 投稿を追加ボタン */}
+          <div className="flex items-center space-x-3 text-gray-700">
+            <div className="flex items-center space-x-2">
+              <Heart className={`w-5 h-5 ${isReacted ? 'fill-red-500 text-red-500' : ''}`} />
+              <span>{pin.reactions} リアクション</span>
+            </div>
+
+            <div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenCreateAtLocation && onOpenCreateAtLocation(pin.latitude, pin.longitude)}
+              >
+                投稿を追加
+              </Button>
+            </div>
           </div>
 
           {/* 通報フォーム */}
@@ -196,6 +212,30 @@ export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReactio
               </div>
             )}
           </div>
+
+          {/* 同一場所の投稿リスト（スクロール可能） */}
+          {pinsAtLocation && pinsAtLocation.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">この場所の投稿</h3>
+              <div className="max-h-48 overflow-y-auto space-y-2 p-2 border rounded-lg bg-white">
+                {pinsAtLocation.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`p-2 rounded-md border ${p.id === pin.id ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">{p.title}</p>
+                        <p className="text-xs text-gray-500">{p.userRole === 'business' ? p.businessName : '匿名'} · {new Date(p.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div className="text-xs text-gray-500">{p.reactions} ❤️</div>
+                    </div>
+                    <p className="text-sm text-gray-700 mt-2 line-clamp-3">{p.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
