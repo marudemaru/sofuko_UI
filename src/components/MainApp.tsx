@@ -23,6 +23,8 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
   const [filteredPins, setFilteredPins] = useState<Pin[]>(mockPins);
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createInitialLatitude, setCreateInitialLatitude] = useState<number | undefined>(undefined);
+  const [createInitialLongitude, setCreateInitialLongitude] = useState<number | undefined>(undefined);
   const [currentView, setCurrentView] = useState<'map' | 'mypage' | 'dashboard' | 'logout' | 'deleteAccount'>('map');
   const [previousView, setPreviousView] = useState<'map' | 'mypage' | 'dashboard'>('map');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -30,6 +32,12 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
 
   const handlePinClick = (pin: Pin) => {
     setSelectedPin(pin);
+  };
+
+  const handleOpenCreateAtLocation = (lat: number, lng: number) => {
+    setCreateInitialLatitude(lat);
+    setCreateInitialLongitude(lng);
+    setIsCreateModalOpen(true);
   };
 
   const handleReaction = (pinId: string) => {
@@ -212,15 +220,23 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
           onClose={() => setSelectedPin(null)}
           onReaction={handleReaction}
           onDelete={handleDeletePin}
-          onBlockUser={handleBlockUser}
+            onBlockUser={handleBlockUser}
+            pinsAtLocation={pins.filter(p => Math.abs(p.latitude - selectedPin.latitude) < 0.0001 && Math.abs(p.longitude - selectedPin.longitude) < 0.0001)}
+            onOpenCreateAtLocation={handleOpenCreateAtLocation}
         />
       )}
 
       {isCreateModalOpen && (
         <CreatePinModal
           user={user}
-          onClose={() => setIsCreateModalOpen(false)}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setCreateInitialLatitude(undefined);
+            setCreateInitialLongitude(undefined);
+          }}
           onCreate={handleCreatePin}
+          initialLatitude={createInitialLatitude}
+          initialLongitude={createInitialLongitude}
         />
       )}
 
