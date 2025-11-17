@@ -46,6 +46,9 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const [inquiries, setInquiries] = useState<Inquiry[]>(mockInquiries);
   const [searchQuery, setSearchQuery] = useState('');
   const [showOnlyOpen, setShowOnlyOpen] = useState(false);
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [replyingInquiry, setReplyingInquiry] = useState<Inquiry | null>(null);
+  const [replyText, setReplyText] = useState('');
 
   const systemStats = {
     totalUsers: 1234,
@@ -660,14 +663,17 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                                   <Badge className={inq.status === 'open' ? 'bg-red-500' : 'bg-slate-400'}>
                                     {inq.status === 'open' ? '未対応' : '対応済み'}
                                   </Badge>
+                                  {inq.draft && (
+                                    <Badge className="bg-yellow-500 text-slate-900">下書き</Badge>
+                                  )}
                                 </div>
                                 <p className="text-sm text-slate-700 mb-2">{inq.message}</p>
                                 <p className="text-xs text-slate-500">{inq.email}</p>
                               </div>
                               <div className="flex flex-col ml-4 space-y-2">
                                 {inq.status === 'open' && (
-                                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleRespondInquiry(inq.id)}>
-                                    返信済みにする
+                                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => { setReplyingInquiry(inq); setReplyText(''); setReplyModalOpen(true); }}>
+                                    返信
                                   </Button>
                                 )}
                                 <Button size="sm" variant="destructive" onClick={() => handleDeleteInquiry(inq.id)}>
@@ -684,6 +690,51 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
               </Card>
             </div>
           )}
+            {/* 返信モーダル（簡易実装・モックのメール送信） */}
+            {replyModalOpen && replyingInquiry && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-white rounded-lg w-[640px] max-w-full p-4 shadow-lg">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h3 className="text-lg font-medium">{`返信: ${replyingInquiry.fromName}`}</h3>
+                      <p className="text-sm text-slate-500">宛先: {replyingInquiry.email} ・ {replyingInquiry.role === 'business' ? '事業者' : '一般'}</p>
+                    </div>
+                    <div>
+                      <button className="text-slate-500 hover:text-slate-700" onClick={() => { setReplyModalOpen(false); setReplyingInquiry(null); setReplyText(''); }}>✕</button>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <textarea
+                      className="w-full h-40 p-2 border rounded resize-none"
+                      placeholder="ここに返信内容を入力します（モック）。メール送信すると自動で対応済みに切り替わります。"
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-3">
+                    <Button variant="outline" onClick={() => { setReplyModalOpen(false); setReplyingInquiry(null); setReplyText(''); }}>キャンセル</Button>
+                  <Button size="sm" onClick={() => {
+                    if (!replyingInquiry) return;
+                    // モック: メール送信として扱い、問い合わせを対応済みにする
+                    setInquiries((prev) => prev.map((q) => q.id === replyingInquiry.id ? { ...q, status: 'responded' } : q));
+                    toast.success('メールを送信しました（モック）。問い合わせを対応済みにしました。');
+                    setReplyModalOpen(false);
+                    setReplyingInquiry(null);
+                    setReplyText('');
+                  }}>メールで送信</Button>
+                  <Button size="sm" variant="outline" onClick={() => {
+                    if (!replyingInquiry) return;
+                    // 下書きを保存（モック）：draft フィールドに本文を保存、ステータスは変更しない
+                    setInquiries((prev) => prev.map((q) => q.id === replyingInquiry.id ? { ...q, draft: replyText } : q));
+                    toast.success('下書きを保存しました（モック）。');
+                    setReplyModalOpen(false);
+                    setReplyingInquiry(null);
+                    setReplyText('');
+                  }}>下書き</Button>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>
