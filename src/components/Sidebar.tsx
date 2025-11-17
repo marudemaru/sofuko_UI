@@ -4,23 +4,30 @@ import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Badge } from './ui/badge';
 import { Search, Plus, SlidersHorizontal } from 'lucide-react';
-import { Pin, PinGenre } from '../types';
+import { Pin, PinGenre, User } from '../types';
 import { genreLabels, genreColors } from '../lib/mockData';
 
 interface SidebarProps {
+  user: User;
   pins: Pin[];
   onFilterChange: (filteredPins: Pin[]) => void;
   onCreatePin: () => void;
   onPinClick: (pin: Pin) => void;
 }
 
-export function Sidebar({ pins, onFilterChange, onCreatePin, onPinClick }: SidebarProps) {
+export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }: SidebarProps) {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedGenre, setSelectedGenre] = useState<PinGenre | 'all'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'reactions' | 'distance'>('date');
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
 
   useEffect(() => {
+    // 事業者ユーザーの場合、検索・絞り込み・並び替えの機能を無効化（全件表示）
+    if (user.role === 'business') {
+      onFilterChange([...pins]);
+      return;
+    }
+
     let filtered = [...pins];
 
     // キーワード検索
@@ -87,54 +94,57 @@ export function Sidebar({ pins, onFilterChange, onCreatePin, onPinClick }: Sideb
           <Plus className="w-4 h-4 mr-2" />
           新規投稿
         </Button>
+        {user.role !== 'business' && (
+          <>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="キーワードで検索..."
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                className="pl-10"
+              />
+            </div>
 
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="キーワードで検索..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Select value={selectedGenre} onValueChange={(value) => setSelectedGenre(value as PinGenre | 'all')}>
+                <SelectTrigger>
+                  <SelectValue placeholder="ジャンル" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全ジャンル</SelectItem>
+                  {Object.entries(genreLabels).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Select value={selectedGenre} onValueChange={(value) => setSelectedGenre(value as PinGenre | 'all')}>
-            <SelectTrigger>
-              <SelectValue placeholder="ジャンル" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全ジャンル</SelectItem>
-              {Object.entries(genreLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="期間" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全期間</SelectItem>
+                  <SelectItem value="today">今日</SelectItem>
+                  <SelectItem value="week">1週間</SelectItem>
+                  <SelectItem value="month">1ヶ月</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <Select value={dateFilter} onValueChange={(value) => setDateFilter(value as any)}>
-            <SelectTrigger>
-              <SelectValue placeholder="期間" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全期間</SelectItem>
-              <SelectItem value="today">今日</SelectItem>
-              <SelectItem value="week">1週間</SelectItem>
-              <SelectItem value="month">1ヶ月</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
-          <SelectTrigger>
-            <SlidersHorizontal className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="並べ替え" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="date">新着順</SelectItem>
-            <SelectItem value="reactions">リアクション順</SelectItem>
-            <SelectItem value="distance">距離順</SelectItem>
-          </SelectContent>
-        </Select>
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
+              <SelectTrigger>
+                <SlidersHorizontal className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="並べ替え" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">新着順</SelectItem>
+                <SelectItem value="reactions">リアクション順</SelectItem>
+                <SelectItem value="distance">距離順</SelectItem>
+              </SelectContent>
+            </Select>
+          </>
+        )}
       </div>
 
       {/* ピンリスト */}
