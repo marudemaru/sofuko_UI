@@ -161,6 +161,7 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
         {currentView === 'map' && (
           <>
             <Sidebar 
+              user={user}
               pins={pins}
               onFilterChange={setFilteredPins}
               onCreatePin={() => setIsCreateModalOpen(true)}
