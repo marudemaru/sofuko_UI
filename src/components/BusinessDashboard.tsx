@@ -336,11 +336,7 @@ export function BusinessDashboard({ user, pins, onPinClick }: BusinessDashboardP
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <button className="text-sm text-red-600 hover:underline">
-                      事業者プランを解約
-                    </button>
-                  </div>
+                  {/* 解約ボタンは廃止：事業者プランの解約操作は管理画面でのみ行えるため UI から削除しました */}
                 </CardContent>
               </Card>
             </div>
