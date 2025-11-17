@@ -285,9 +285,11 @@ export function MyPage({ user, pins, reactedPins, onPinClick, onDeletePin, onUpd
 
         {/* タブコンテンツ */}
         <Tabs defaultValue="posts" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className={`grid w-full ${user.role === 'business' ? 'grid-cols-2' : 'grid-cols-3'}`}>
             <TabsTrigger value="posts">投稿履歴 ({pins.length})</TabsTrigger>
-            <TabsTrigger value="reactions">リアクション履歴 ({reactedPins.length})</TabsTrigger>
+            {user.role !== 'business' && (
+              <TabsTrigger value="reactions">リアクション履歴 ({reactedPins.length})</TabsTrigger>
+            )}
             <TabsTrigger value="settings">設定</TabsTrigger>
           </TabsList>
 
@@ -341,39 +343,41 @@ export function MyPage({ user, pins, reactedPins, onPinClick, onDeletePin, onUpd
             )}
           </TabsContent>
 
-          {/* リアクション履歴 */}
-          <TabsContent value="reactions" className="space-y-4">
-            {reactedPins.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-gray-500">
-                  まだリアクションがありません
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid gap-4">
-                {reactedPins.map((pin) => (
-                  <Card key={pin.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onPinClick(pin)}>
-                    <CardContent className="p-4">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <h3>{pin.title}</h3>
-                        <Badge style={{ backgroundColor: genreColors[pin.genre] }}>
-                          {genreLabels[pin.genre]}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{pin.description}</p>
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>{pin.userRole === 'business' ? pin.businessName : pin.userName}</span>
-                        <span className="flex items-center">
-                          <Heart className="w-4 h-4 mr-1 fill-red-500 text-red-500" />
-                          {pin.reactions}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
+          {/* リアクション履歴（事業者以外のみ表示） */}
+          {user.role !== 'business' && (
+            <TabsContent value="reactions" className="space-y-4">
+              {reactedPins.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-gray-500">
+                    まだリアクションがありません
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid gap-4">
+                  {reactedPins.map((pin) => (
+                    <Card key={pin.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onPinClick(pin)}>
+                      <CardContent className="p-4">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <h3>{pin.title}</h3>
+                          <Badge style={{ backgroundColor: genreColors[pin.genre] }}>
+                            {genreLabels[pin.genre]}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">{pin.description}</p>
+                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                          <span>{pin.userRole === 'business' ? pin.businessName : pin.userName}</span>
+                          <span className="flex items-center">
+                            <Heart className="w-4 h-4 mr-1 fill-red-500 text-red-500" />
+                            {pin.reactions}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
           {/* 設定 */}
           <TabsContent value="settings" className="space-y-4">
