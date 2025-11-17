@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { User } from '../types';
-import { mockPins } from '../lib/mockData';
+import { mockPins, mockInquiries, Inquiry } from '../lib/mockData';
 import { 
   Users, 
   AlertTriangle, 
@@ -20,6 +20,7 @@ import {
   Shield,
   Clock,
   Eye
+  ,MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -41,6 +42,10 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
     { id: 'ba1', userName: '田中商店', email: 'tanaka@example.com', businessName: '田中商店', phone: '090-1234-5678', address: '山田市1-2-3', date: '2025-11-03' },
     { id: 'ba2', userName: '鈴木食堂', email: 'suzuki@example.com', businessName: '鈴木食堂', phone: '090-8765-4321', address: '山田市4-5-6', date: '2025-11-02' },
   ]);
+
+  const [inquiries, setInquiries] = useState<Inquiry[]>(mockInquiries);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyOpen, setShowOnlyOpen] = useState(false);
 
   const systemStats = {
     totalUsers: 1234,
@@ -90,6 +95,18 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
   const handleDeleteAccount = (userId: string) => {
     if (confirm('このアカウントを削除しますか？関連する全ての投稿も削除されます。')) {
       toast.success('アカウントを削除しました');
+    }
+  };
+
+  const handleRespondInquiry = (id: string) => {
+    setInquiries((prev) => prev.map((q) => (q.id === id ? { ...q, status: 'responded' } : q)));
+    toast.success('問い合わせを返信済みにしました');
+  };
+
+  const handleDeleteInquiry = (id: string) => {
+    if (confirm('この問い合わせを削除しますか？')) {
+      setInquiries((prev) => prev.filter((q) => q.id !== id));
+      toast.success('問い合わせを削除しました');
     }
   };
 
@@ -170,6 +187,20 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
           >
             <Users className="w-5 h-5" />
             <span>ユーザー管理</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('inquiries')}
+            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+              activeTab === 'inquiries' 
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-lg' 
+                : 'hover:bg-slate-700'
+            }`}
+          >
+            <MessageSquare className="w-5 h-5" />
+            <span className="flex-1 text-left">お問い合わせ</span>
+            {inquiries.length > 0 && (
+              <Badge className="bg-emerald-500">{inquiries.length}</Badge>
+            )}
           </button>
         </nav>
 
@@ -562,6 +593,92 @@ export function AdminDashboard({ user, onLogout }: AdminDashboardProps) {
                         </Button>
                       </div>
                     ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* お問い合わせタブ */}
+          {activeTab === 'inquiries' && (
+            <div className="max-w-5xl space-y-4">
+              <Card className="shadow-lg border-slate-200">
+                <CardHeader>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center space-x-3">
+                      <MessageSquare className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <CardTitle>お問い合わせ一覧</CardTitle>
+                        <CardDescription>一般会員・事業者からの問い合わせを管理します</CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="flex items-center bg-white rounded shadow px-2 py-1">
+                        <input
+                          className="w-64 px-2 py-1 text-sm outline-none"
+                          placeholder="検索（名前・メール・本文）"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                      </div>
+                      <Button size="sm" variant={showOnlyOpen ? undefined : 'outline'} onClick={() => setShowOnlyOpen((v) => !v)} className="shadow-sm">
+                        未対応のみ
+                      </Button>
+                      <Badge className="bg-emerald-500">{inquiries.length}</Badge>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {(() => {
+                      const q = searchQuery.trim().toLowerCase();
+                      const filtered = inquiries.filter((it) => {
+                        if (showOnlyOpen && it.status !== 'open') return false;
+                        if (!q) return true;
+                        return (
+                          it.fromName.toLowerCase().includes(q) ||
+                          it.email.toLowerCase().includes(q) ||
+                          it.message.toLowerCase().includes(q)
+                        );
+                      });
+
+                      if (filtered.length === 0) {
+                        return <div className="text-sm text-slate-500">条件に一致する問い合わせはありません。</div>;
+                      }
+
+                      return filtered.map((inq) => (
+                        <Card key={inq.id} className="shadow-sm border-slate-100">
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-3 mb-2">
+                                  <p className="font-medium">{inq.fromName}</p>
+                                  <Badge className={inq.role === 'business' ? 'bg-blue-600' : 'bg-slate-400'}>
+                                    {inq.role === 'business' ? '事業者' : '一般'}
+                                  </Badge>
+                                  <span className="text-xs text-slate-500">{inq.date}</span>
+                                  <Badge className={inq.status === 'open' ? 'bg-red-500' : 'bg-slate-400'}>
+                                    {inq.status === 'open' ? '未対応' : '対応済み'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-slate-700 mb-2">{inq.message}</p>
+                                <p className="text-xs text-slate-500">{inq.email}</p>
+                              </div>
+                              <div className="flex flex-col ml-4 space-y-2">
+                                {inq.status === 'open' && (
+                                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleRespondInquiry(inq.id)}>
+                                    返信済みにする
+                                  </Button>
+                                )}
+                                <Button size="sm" variant="destructive" onClick={() => handleDeleteInquiry(inq.id)}>
+                                  削除
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ));
+                    })()}
                   </div>
                 </CardContent>
               </Card>
