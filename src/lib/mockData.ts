@@ -125,6 +125,7 @@ export type Inquiry = {
   message: string;
   date: string;
   status: 'open' | 'responded';
+  draft?: string;
 };
 
 export const mockInquiries: Inquiry[] = [
