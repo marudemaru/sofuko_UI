@@ -2,28 +2,32 @@ import { useState } from 'react';
 import { Pin } from '../types';
 import { genreColors } from '../lib/mockData';
 import { MapPin as MapPinIcon, Building2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
-import { getPinPosition, calculateLocation, truncateCoord } from './GetLocation';
 
 interface MapViewProps {
   pins: Pin[];
   onPinClick: (pin: Pin) => void;
-  onMapDoubleClick: (lat: number, lng: number) => void;
 }
 
-export function MapView({ pins, onPinClick, onMapDoubleClick }: MapViewProps) {
+export function MapView({ pins, onPinClick }: MapViewProps) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hoveredPin, setHoveredPin] = useState<string | null>(null);
 
-  // 追加: ダブルクリックした場所の緯度経度を計算する関数
-  const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const { lat, lng } = calculateLocation(e.clientX, e.clientY, rect);
-    onMapDoubleClick(lat, lng);
+  // 緯度経度を画面座標に変換（簡易版）
+  const getPinPosition = (pin: Pin) => {
+    const minLat = 35.65;
+    const maxLat = 35.70;
+    const minLng = 139.63;
+    const maxLng = 139.67;
+
+    const x = ((pin.longitude - minLng) / (maxLng - minLng)) * 100;
+    const y = ((maxLat - pin.latitude) / (maxLat - minLat)) * 100;
+
+    return { x: `${x}%`, y: `${y}%` };
   };
 
   // 同じ位置のピンをグループ化
   const groupedPins = pins.reduce((acc, pin) => {
-    const key = `${truncateCoord(pin.latitude)}_${truncateCoord(pin.longitude)}`;
+    const key = `${pin.latitude.toFixed(4)}_${pin.longitude.toFixed(4)}`;
     if (!acc[key]) {
       acc[key] = [];
     }
@@ -39,10 +43,7 @@ export function MapView({ pins, onPinClick, onMapDoubleClick }: MapViewProps) {
   };
 
   return (
-    <div className=
-      "flex-1 relative bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 overflow-hidden"
-      onDoubleClick={handleDoubleClick}
-    >
+    <div className="flex-1 relative bg-gradient-to-br from-teal-50 via-cyan-50 to-blue-50 overflow-hidden">
       {/* トポグラフィー風の背景 */}
       <div 
         className="absolute inset-0 opacity-30"
@@ -97,11 +98,10 @@ export function MapView({ pins, onPinClick, onMapDoubleClick }: MapViewProps) {
       <div 
         className="absolute inset-0 transition-transform duration-300"
         style={{ transform: `scale(${zoomLevel})` }}
-        onDoubleClick={handleDoubleClick}
       >
         {Object.entries(groupedPins).map(([key, groupPins]) => {
           const representativePin = groupPins[0];
-          const position = getPinPosition(representativePin.latitude, representativePin.longitude);
+          const position = getPinPosition(representativePin);
           const count = groupPins.length;
           const size = getPinSize(count);
           const isHovered = hoveredPin === key;
@@ -109,13 +109,7 @@ export function MapView({ pins, onPinClick, onMapDoubleClick }: MapViewProps) {
           return (
             <button
               key={key}
-              onClick={(e) => {
-                e.stopPropagation(); 
-                onPinClick(representativePin);
-              }}
-              onDoubleClick={(e) => {
-                e.stopPropagation(); 
-              }}
+              onClick={() => onPinClick(representativePin)}
               onMouseEnter={() => setHoveredPin(key)}
               onMouseLeave={() => setHoveredPin(null)}
               className="absolute transform -translate-x-1/2 -translate-y-full group"

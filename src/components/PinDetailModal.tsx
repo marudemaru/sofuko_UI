@@ -4,11 +4,9 @@ import { Badge } from './ui/badge';
 import { Heart, Flag, Trash2, Eye } from 'lucide-react';
 import { Pin, User } from '../types';
 import { genreLabels, genreColors } from '../lib/mockData';
-import { useEffect, useRef, useState } from 'react';
-import { UserTriggerReaction } from './UserTriggerReaction';
-import { ReportScreen } from './ReportScreen';
-import { SelectBlock } from './SelectBlock';
-import { SelectPostDeletion } from './SelectPostDeletion';
+import { toast } from 'sonner';
+import { useState } from 'react';
+import { Textarea } from './ui/textarea';
 
 interface PinDetailModalProps {
   pin: Pin;
@@ -22,21 +20,11 @@ interface PinDetailModalProps {
   pinsAtLocation?: Pin[];
   // open create modal prefilled with given coordinates
   onOpenCreateAtLocation?: (lat: number, lng: number) => void;
-  // 追加：別のピンを選択するための関数
-  onSelectPin?: (pin: Pin) => void;
 }
 
-export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReaction, onDelete, onBlockUser, pinsAtLocation, onOpenCreateAtLocation, onSelectPin }: PinDetailModalProps) {
-  const [isReporting, setIsReporting] = useState(false);
+export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReaction, onDelete, onBlockUser, pinsAtLocation, onOpenCreateAtLocation }: PinDetailModalProps) {
+  const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState('');
-
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  }, [pin.id]);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleString('ja-JP', {
@@ -48,14 +36,32 @@ export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReactio
     });
   };
 
+  const handleReport = () => {
+    if (!reportReason.trim()) {
+      toast.error('通報理由を入力してください');
+      return;
+    }
+    toast.success('通報を受け付けました。運営が確認いたします。');
+    setShowReportForm(false);
+    setReportReason('');
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (confirm('この投稿を削除してもよろしいですか？')) {
+      onDelete(pin.id);
+      toast.success('投稿を削除しました');
+    }
+  };
+
   const isOwnPost = pin.userId === currentUser.id;
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-              <div className="flex items-start justify-between">
-              <div className="flex-1">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
               <DialogTitle>{pin.title}</DialogTitle>
               <DialogDescription className="sr-only">
                 投稿の詳細情報を表示します
@@ -117,7 +123,7 @@ export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReactio
 
           {/* リアクション数 と 投稿を追加ボタン */}
           <div className="flex items-center space-x-3 text-gray-700">
-          <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
               <Heart className={`w-5 h-5 ${isReacted ? 'fill-red-500 text-red-500' : ''}`} />
               <span>{pin.reactions} リアクション</span>
             </div>
@@ -133,66 +139,98 @@ export function PinDetailModal({ pin, currentUser, isReacted, onClose, onReactio
             </div>
           </div>
 
-          {/* アクションエリア */}
-          <div className="flex items-center space-x-2 pt-4 border-t">
-            {isReporting ? (
-              <ReportScreen isReporting={isReporting} setIsReporting={setIsReporting} onReportComplete={onClose} />
-            ) : (
-              <>
-                {/* 1. リアクションボタン */}
-                <UserTriggerReaction
-                  pinId={pin.id}
-                  isReacted={isReacted}
-                  userRole={currentUser.role}
-                  isDisabled={false}
-                  onReaction={onReaction}
-                />
+          {/* 通報フォーム */}
+          {showReportForm && !isOwnPost && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+              <p className="text-sm">通報理由を入力してください：</p>
+              <Textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="不適切な内容、規約違反の理由などを具体的に記入してください"
+                rows={4}
+              />
+              <div className="flex space-x-2">
+                <Button onClick={handleReport} variant="destructive" size="sm">
+                  通報する
+                </Button>
+                <Button onClick={() => setShowReportForm(false)} variant="outline" size="sm">
+                  キャンセル
+                </Button>
+              </div>
+            </div>
+          )}
 
-                {isOwnPost ? (
-                  /* 2. 削除ボタン */
-                  <SelectPostDeletion 
-                    pinId={pin.id} 
-                    onDelete={onDelete} 
-                    onClose={onClose} 
-                  />
-                ) : (
-                  /* 3. 通報 & ブロック */
-                  <>
-                    <ReportScreen isReporting={isReporting} setIsReporting={setIsReporting} onReportComplete={onClose} />
-                    {typeof onBlockUser === 'function' && (
-                      <SelectBlock 
-                        userId={pin.userId} 
-                        onBlockUser={onBlockUser} 
-                        onClose={onClose} 
-                      />
-                    )}
-                  </>
+          {/* アクションボタン */}
+          <div className="flex space-x-2 pt-4 border-t">
+            <Button
+              onClick={() => {
+                // ボタンが無効な場合は何もしない
+                if (showReportForm || currentUser.role === 'business') return;
+                onReaction(pin.id);
+              }}
+              variant={isReacted ? 'default' : 'outline'}
+              className="flex-1"
+              disabled={showReportForm || currentUser.role === 'business'}
+            >
+              <Heart className={`w-4 h-4 mr-2 ${isReacted ? 'fill-white' : ''}`} />
+              {currentUser.role === 'business' ? '事業者はリアクション不可' : (isReacted ? 'リアクション済み' : 'リアクション')}
+            </Button>
+
+            {isOwnPost ? (
+              <Button
+                onClick={handleDelete}
+                variant="destructive"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                削除
+              </Button>
+            ) : (
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => setShowReportForm(!showReportForm)}
+                  variant="outline"
+                >
+                  <Flag className="w-4 h-4 mr-2" />
+                  通報
+                </Button>
+
+                {/* ブロック機能を追加 */}
+                {typeof onBlockUser === 'function' && (
+                  <Button
+                    onClick={() => {
+                      if (confirm('このユーザーをブロックしますか？ ブロックすると相手の投稿が表示されなくなります。')) {
+                        onBlockUser(pin.userId);
+                        toast.success('ユーザーをブロックしました');
+                        onClose();
+                      }
+                    }}
+                    variant="destructive"
+                  >
+                    ブロック
+                  </Button>
                 )}
-              </>
+              </div>
             )}
           </div>
 
           {/* 同一場所の投稿リスト（スクロール可能） */}
           {pinsAtLocation && pinsAtLocation.length > 0 && (
-            <div className="mt-6 pt-6 border-t">
-              <h3 className="text-sm font-bold mb-3">この場所の他の投稿</h3>
-              <div className="space-y-2">
+            <div className="mt-4">
+              <h3 className="text-sm font-medium mb-2">この場所の投稿</h3>
+              <div className="max-h-48 overflow-y-auto space-y-2 p-2 border rounded-lg bg-white">
                 {pinsAtLocation.map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => {
-                      if (p.id !== pin.id && onSelectPin) onSelectPin(p);
-                    }}
-                    className={`cursor-pointer p-3 rounded-lg border transition-colors ${
-                      p.id === pin.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`p-2 rounded-md border ${p.id === pin.id ? 'border-blue-400 bg-blue-50' : 'border-gray-100'}`}
                   >
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">{p.title}</span>
-                      <span className="text-xs text-gray-500">{p.reactions} ❤️</span>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold">{p.title}</p>
+                        <p className="text-xs text-gray-500">{p.userRole === 'business' ? p.businessName : '匿名'} · {new Date(p.createdAt).toLocaleString()}</p>
+                      </div>
+                      <div className="text-xs text-gray-500">{p.reactions} ❤️</div>
                     </div>
+                    <p className="text-sm text-gray-700 mt-2 line-clamp-3">{p.description}</p>
                   </div>
                 ))}
               </div>
