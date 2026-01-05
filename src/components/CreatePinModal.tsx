@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -75,9 +75,31 @@ export function CreatePinModal({ user, onClose, onCreate, initialLatitude, initi
     toast.success('投稿しました！');
   };
 
-  const handleAddSampleImage = () => {
-    const randomImage = sampleImages[Math.floor(Math.random() * sampleImages.length)];
-    setImages([...images, randomImage]);
+  /* 画像をアップロードするための処理 */
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ファイルが選択された時の処理
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    // 選択されたファイルをループしてプレビューURLを作成
+    const newImages: string[] = [];
+    Array.from(files).forEach((file) => {
+      // ブラウザで一時的に表示するためのURLを生成
+      const imageUrl = URL.createObjectURL(file);
+      newImages.push(imageUrl);
+    });
+
+    setImages((prev) => [...prev, ...newImages]);
+    
+    // 同じファイルを再度選択できるようにリセット
+    e.target.value = '';
+  };
+
+  // ボタンがクリックされた時に隠しinputをクリックさせる
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   const handleRemoveImage = (index: number) => {
@@ -165,19 +187,23 @@ export function CreatePinModal({ user, onClose, onCreate, initialLatitude, initi
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-            <p className="text-sm text-blue-800 flex items-start">
-              <MapPin className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-              <span>実際のアプリでは、地図上でクリックまたは店舗名検索で位置を指定できます</span>
-            </p>
-          </div>
-
           {/* 画像 */}
           <div>
-            <Label>画像（任意）</Label>
+            <Label>画像（複数選択可）</Label>
             <div className="mt-2 space-y-2">
+              {/* 非表示のファイル入力 */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                multiple // 複数選択を許可
+                className="hidden"
+              />
+              
+              {/* プレビュー表示エリア */}
               {images.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2 mb-2">
                   {images.map((image, index) => (
                     <div key={index} className="relative group">
                       <ImageWithFallback
@@ -200,15 +226,12 @@ export function CreatePinModal({ user, onClose, onCreate, initialLatitude, initi
               <Button
                 type="button"
                 variant="outline"
-                onClick={handleAddSampleImage}
+                onClick={triggerFileInput} // ここでinputを発火
                 className="w-full"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                サンプル画像を追加（デモ用）
+                画像をアップロード
               </Button>
-              <p className="text-xs text-gray-500">
-                実際のアプリでは、写真をアップロードできます
-              </p>
             </div>
           </div>
 

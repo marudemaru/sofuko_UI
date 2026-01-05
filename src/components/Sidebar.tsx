@@ -59,6 +59,7 @@ export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }:
     }
 
     // 並べ替え
+    /*
     if (sortBy === 'date') {
       filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } else if (sortBy === 'reactions') {
@@ -66,7 +67,7 @@ export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }:
     } else if (sortBy === 'distance') {
       // 距離順は簡易的に緯度経度で計算（実際は現在地からの距離を計算する）
       filtered.sort((a, b) => a.latitude - b.latitude);
-    }
+    }*/
 
     onFilterChange(filtered);
   }, [searchKeyword, selectedGenre, sortBy, dateFilter, pins, onFilterChange]);
@@ -90,10 +91,12 @@ export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }:
     <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
       {/* 検索・フィルター */}
       <div className="p-4 border-b border-gray-200 space-y-3">
+        {/*
         <Button onClick={onCreatePin} className="w-full">
           <Plus className="w-4 h-4 mr-2" />
           新規投稿
         </Button>
+        */}
         {user.role !== 'business' && (
           <>
             <div className="relative">
@@ -132,6 +135,7 @@ export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }:
               </Select>
             </div>
 
+            {/*
             <Select value={sortBy} onValueChange={(value) => setSortBy(value as any)}>
               <SelectTrigger>
                 <SlidersHorizontal className="w-4 h-4 mr-2" />
@@ -143,6 +147,7 @@ export function Sidebar({ user, pins, onFilterChange, onCreatePin, onPinClick }:
                 <SelectItem value="distance">距離順</SelectItem>
               </SelectContent>
             </Select>
+            */}
           </>
         )}
       </div>

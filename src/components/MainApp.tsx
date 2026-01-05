@@ -22,13 +22,23 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
   const [pins, setPins] = useState<Pin[]>(mockPins);
   const [filteredPins, setFilteredPins] = useState<Pin[]>(mockPins);
   const [selectedPin, setSelectedPin] = useState<Pin | null>(null);
+  
+  // 投稿モーダル用のステート（これ1セットでOK）
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createInitialLatitude, setCreateInitialLatitude] = useState<number | undefined>(undefined);
   const [createInitialLongitude, setCreateInitialLongitude] = useState<number | undefined>(undefined);
+  
   const [currentView, setCurrentView] = useState<'map' | 'mypage' | 'dashboard' | 'logout' | 'deleteAccount'>('map');
   const [previousView, setPreviousView] = useState<'map' | 'mypage' | 'dashboard'>('map');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [reactedPins, setReactedPins] = useState<Set<string>>(new Set());
+
+  // 地図ダブルクリック時の処理
+  const handleMapDoubleClick = (lat: number, lng: number) => {
+    console.log(`緯度: ${lat}, 経度: ${lng}`);
+    // 既存の関数を呼び出してモーダルを開く
+    handleOpenCreateAtLocation(lat, lng);
+  };
 
   const handlePinClick = (pin: Pin) => {
     setSelectedPin(pin);
@@ -170,6 +180,7 @@ export function MainApp({ user, onLogout, onUpdateUser }: MainAppProps) {
             <MapView 
               pins={filteredPins}
               onPinClick={handlePinClick}
+              onMapDoubleClick={handleMapDoubleClick}
             />
           </>
         )}
